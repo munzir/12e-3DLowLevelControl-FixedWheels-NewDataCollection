@@ -485,6 +485,8 @@ CMakeFiles/fixedWheelKrang.dir/Controller.cpp.o: /usr/local/include/dart/optimiz
 CMakeFiles/fixedWheelKrang.dir/Controller.cpp.o: /usr/local/include/dart/simulation/Recording.hpp
 CMakeFiles/fixedWheelKrang.dir/Controller.cpp.o: /usr/local/include/dart/simulation/World.hpp
 CMakeFiles/fixedWheelKrang.dir/Controller.cpp.o: /usr/local/include/dart/simulation/simulation.hpp
+CMakeFiles/fixedWheelKrang.dir/Controller.cpp.o: /usr/local/include/nlopt.h
+CMakeFiles/fixedWheelKrang.dir/Controller.cpp.o: /usr/local/include/nlopt.hpp
 
 CMakeFiles/fixedWheelKrang.dir/Main.cpp.o: ../Controller.hpp
 CMakeFiles/fixedWheelKrang.dir/Main.cpp.o: ../Main.cpp

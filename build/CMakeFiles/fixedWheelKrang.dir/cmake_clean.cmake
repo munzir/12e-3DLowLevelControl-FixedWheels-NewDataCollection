@@ -1,7 +1,7 @@
 file(REMOVE_RECURSE
   "CMakeFiles/fixedWheelKrang.dir/MyWindow.cpp.o"
-  "CMakeFiles/fixedWheelKrang.dir/Controller.cpp.o"
   "CMakeFiles/fixedWheelKrang.dir/Main.cpp.o"
+  "CMakeFiles/fixedWheelKrang.dir/Controller.cpp.o"
   "fixedWheelKrang.pdb"
   "fixedWheelKrang"
 )
