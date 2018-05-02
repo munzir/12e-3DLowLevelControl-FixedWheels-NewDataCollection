@@ -37,7 +37,7 @@
 MyWindow::MyWindow(Controller* _controller)
   : SimWindow(),
     mController(_controller),
-    mCircleTask(false) {
+    mCircleTask(true) {
   assert(_controller != nullptr);
 
   // Set the initial target positon to the initial position of the end effector
@@ -53,13 +53,13 @@ void MyWindow::timeStepping() {
   if (mCircleTask) {
     static double time = 0.0;
     const double dt = 0.0005;
-    const double radius = 0.6;
-    Eigen::Vector3d center = Eigen::Vector3d(0.0, 0.1, 0.0);
+    const double radius = 0.3;
+    Eigen::Vector3d center = Eigen::Vector3d(-0.708, 0.8, -0.6);
 
     mTargetPosition = center;
-    mTargetPosition[0] = radius * std::sin(time);
-    mTargetPosition[1] = 0.25 * radius * std::sin(time);
-    mTargetPosition[2] = radius * std::cos(time);
+    mTargetPosition[0] += radius * std::sin(time);
+    //mTargetPosition[1] = center(2);
+    mTargetPosition[2] += radius * std::cos(time);
 
     time += dt;
   }

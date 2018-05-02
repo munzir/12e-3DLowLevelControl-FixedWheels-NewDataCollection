@@ -39,7 +39,7 @@ dart::dynamics::SkeletonPtr createKrang() {
   // Load the Skeleton from a file
   dart::utils::DartLoader loader;
   dart::dynamics::SkeletonPtr krang =
-      loader.parseSkeleton("/home/panda/myfolder/wholebodycontrol/09-URDF/KrangFixedWheels/krang_fixed_wheel.urdf");
+      loader.parseSkeleton("/home/krang/dart/09-URDF/KrangFixedWheels/krang_fixed_wheel.urdf");
   krang->setName("krang");
 
   // Position its base in a reasonable way

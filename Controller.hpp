@@ -34,8 +34,12 @@
 
 #include <Eigen/Eigen>
 #include <string>
+#include <fstream>
+#include <iostream>
 #include <dart/dart.hpp>
-
+#define SAMPLES 2000
+#define DOF 18
+using namespace std;
 /// \brief Operational space controller for 6-dof manipulator
 class Controller {
 public:
@@ -60,8 +64,23 @@ public:
   virtual void keyboard(unsigned char _key, int _x, int _y);
 
 private:
+  ofstream DataTime;
+  ofstream DataQ;
+  ofstream DatadQ;
+  ofstream DataddQ;
+  ofstream DataM;
+  ofstream DataCg;
+  ofstream DataTorque;
+  ofstream TargetPosition;
+  ofstream com;
+  ofstream x_left;
+  ofstream x_right;
+  ofstream coeff_error;
   /// \brief Robot
   dart::dynamics::SkeletonPtr mRobot;
+  double mTime;
+  double dt;
+  double wf;
 
   /// \brief Left End-effector of the robot
   dart::dynamics::BodyNode* mLeftEndEffector;

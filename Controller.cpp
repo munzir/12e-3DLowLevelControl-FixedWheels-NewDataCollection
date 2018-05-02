@@ -52,7 +52,7 @@ Controller::Controller(dart::dynamics::SkeletonPtr _robot,
   mForces.setZero(dof);
   mKp.setZero();
   mKv.setZero();
-
+  wf = 0.933881552676;
   for (int i = 0; i < 3; ++i) {
     mKp(i, i) = 750.0;
     mKv(i, i) = 250.0;
@@ -65,6 +65,53 @@ Controller::Controller(dart::dynamics::SkeletonPtr _robot,
   // Set joint damping
   for (int i = 0; i < dof; ++i)
     _robot->getJoint(i)->setDampingCoefficient(0, 0.5);
+
+  // Eigen::MatrixXd xpQ   (1, DOF);
+  // Eigen::MatrixXd xpdQ  (1, DOF);
+  // Eigen::MatrixXd xpddQ (1, DOF);
+
+  // // Dump data
+  DataM.open      ("./data/DataM.txt");
+  DataM       << "DataM" << endl;
+
+  DataCg.open      ("./data/DataCg.txt");
+  DataCg      << "DataCg" << endl;
+
+
+  DataTime.open   ("./data/DataTime.txt");
+  DataTime    << "DataTime" << endl;
+
+  DataQ.open      ("./data/DataQ.txt");
+  DataQ       << "DataQ" << endl;
+
+  DatadQ.open      ("./data/DatadQ.txt");
+  DatadQ       << "DatadQ" << endl;
+
+  DataddQ.open      ("./data/DataddQ.txt");
+  DataddQ       << "DataddQ" << endl;
+
+  DataTorque.open      ("./data/DataTorque.txt");
+  DataTorque       << "DataTorque" << endl;
+
+  TargetPosition.open      ("./data/TargetPosition.txt");
+  TargetPosition       << "TargetPosition" << endl;
+
+  com.open      ("./data/com.txt");
+  com       << "com" << endl;
+
+  x_left.open      ("./data/x_left.txt");
+  x_left       << "x_left" << endl;
+
+  x_right.open      ("./data/x_right.txt");
+  x_right       << "x_right" << endl;
+
+  coeff_error.open      ("./data/coeff_error.txt");
+  coeff_error       << "coeff_error" << endl;
+
+  mTime = 0;
+
+
+  //
 }
 
 //=========================================================================
@@ -98,14 +145,37 @@ double optFunc(const std::vector<double> &x, std::vector<double> &grad, void *my
   return (0.5 * pow((optParams->P*X - optParams->b).norm(), 2));
 }
 
+//==============================================================================
+template <typename T> int sgn(T val) {
+    return (T(0) < val) - (val < T(0));
+}
+
+//==================================================================================================
+Eigen::MatrixXd error(Eigen::VectorXd dq, const int dof) {
+  Eigen::MatrixXd err(DOF,1);
+  for (int i = 0; i < dof; i++) {
+    err(i) =  -(2/( 1 + exp(-2*dq(i)) )-1) ;
+  }
+  return err;
+}
+
 //=========================================================================
 void Controller::update(const Eigen::Vector3d& _targetPosition) {
+
+  mTime += 0.001;
+
   using namespace dart;
   using namespace std;
   const int dof = (const int)mRobot->getNumDofs();
+  Eigen::VectorXd  q    = mRobot->getPositions();                 // n x 1
   Eigen::VectorXd dq    = mRobot->getVelocities();                // n x 1
-  double weightRight = 1.0, weightLeft = 1.0, weightRegulator = 1.0, weightBalance = 10.0;
+  Eigen::VectorXd ddq_data   = mRobot->getAccelerations();             // n x 1
+  // Eigen::VectorXd ddqref = -mKp*(q - qref) - mKv*(dq - dqref);    // n x 1
+  double weightRight = 1.0, weightLeft = 1.0, weightRegulator = 1.0, weightBalance = 3.0;
   double KpzCOM = 750.0, KvzCOM = 250.0;
+  //Eigen::Transform<double, 3, Eigen::Affine> Tf = mRobot->getBodyNode("Base")->getTransform();
+  //Eigen::Vector3d t = Tf.translation();
+  //cout << t(0) << ", " << t(1) << ", " << t(2) << endl;
 
   // Left arm
   Eigen::Vector3d xLft    = mLeftEndEffector->getTransform().translation();
@@ -164,7 +234,7 @@ void Controller::update(const Eigen::Vector3d& _targetPosition) {
           bBalance;
   optParams.P = NewP;
   optParams.b = NewB;
-  nlopt::opt opt(nlopt::LD_MMA, dof);
+  nlopt::opt opt(nlopt::LD_SLSQP, dof);
   std::vector<double> ddq_vec(dof);
   double minf;
   opt.set_min_objective(optFunc, &optParams);
@@ -177,9 +247,73 @@ void Controller::update(const Eigen::Vector3d& _targetPosition) {
   Eigen::MatrixXd M     = mRobot->getMassMatrix();                // n x n
   Eigen::VectorXd Cg    = mRobot->getCoriolisAndGravityForces();  // n x 1
   mForces = M*ddq + Cg;
-  mRobot->setForces(mForces);
-}
+  Eigen::Matrix<double, 18, 18> errCoeff = Eigen::Matrix<double, 18, 18>::Identity();
+  errCoeff(0,0) =   1.0;
+  errCoeff(1,1) =   1.2;
+  errCoeff(2,2) =   1.3;
+  errCoeff(3,3) =   1.0;
+  
+  // Left Arm
+  errCoeff(4,4) =   30;
+  errCoeff(5,5) =   30;
+  errCoeff(6,6) =   15;
+  errCoeff(7,7) =   15;
+  errCoeff(8,8) =   7;
+  errCoeff(9,9) =   7;
+  errCoeff(10,10) = 1;
+  
+  // Right Arm
+  errCoeff(11,11) = 30;
+  errCoeff(12,12) = 30;
+  errCoeff(13,13) = 15;
+  errCoeff(14,14) = 15;
+  errCoeff(15,15) = 7;
+  errCoeff(16,16) = 7;
+  errCoeff(17,17) = 1;
 
+
+  Eigen::VectorXd mForceErr = mForces + errCoeff*error(dq, dof);
+  mRobot->setForces(mForceErr);
+  DataTime    << mTime << endl;
+  DataQ       << q.transpose() << endl;
+  DatadQ    << dq.transpose() << endl;
+  DataddQ   << ddq_data.transpose() << endl;
+  DataM   << M << endl;
+  DataCg  << Cg << endl;
+  DataTorque << mForces.transpose() << endl;
+  TargetPosition<<_targetPosition.transpose()<<endl;
+  x_left<<xLft.transpose()<<endl;
+  x_right<<xRgt.transpose()<<endl;
+  com << dzCOM << endl;
+  coeff_error<<errCoeff<<endl;
+
+  // Closing operation
+  double T = 10;
+  if (mTime >= 2*T ) {
+    // cout << "Time period met. Closing simulation ..." << endl;
+    cout << "Time period met. Stopping data recording ...";
+    DataTime.close();
+    DataQ.close();
+    DatadQ.close();
+    DataddQ.close();
+    DataM.close();
+    DataCg.close();
+    DataTorque.close();
+    x_left.close();
+    x_right.close();
+    TargetPosition.close();
+    com.close();
+    coeff_error.close();
+    // dataQdot.close();
+    // dataQdotdot.close();
+    // dataTorque.close();
+    // dataM.close();
+    // dataCg.close();
+    // dataError.close();
+    cout << "File handles closed!" << endl << endl << endl;
+    exit (EXIT_FAILURE);
+}
+}
 //=========================================================================
 dart::dynamics::SkeletonPtr Controller::getRobot() const {
   return mRobot;
